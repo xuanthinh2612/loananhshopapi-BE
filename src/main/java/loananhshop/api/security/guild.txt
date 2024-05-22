@@ -1,0 +1,20 @@
+jwt implement
+
+1. add dependences
+
+    // jwt security
+    // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-jackson
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+    // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-impl
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+    // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+
+2. JwtAuthenticationEntryPoint
+3.  Creating JwtTokenProvider Utility Class
+4.  Creating JwtAuthenticationFilter
+5.  Configure JWT in Spring Security
+	- Create JwtAuthResponse DTO
+	- add jwt to springSecurityConfig
+6.  Change Login REST API to Return JWT Token
+	return JwtAuthResponse object after login success

@@ -1,0 +1,4 @@
+data transfer object
+
+
+define a object to send to client
