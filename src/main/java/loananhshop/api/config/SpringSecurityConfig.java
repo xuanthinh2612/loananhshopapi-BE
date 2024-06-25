@@ -38,6 +38,8 @@ public class SpringSecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable).authorizeHttpRequests((authorize) -> {
             authorize.requestMatchers("/api/auth/**").permitAll();
+            authorize.requestMatchers("/api/product/**").permitAll();
+            authorize.requestMatchers("/api/admin/**").permitAll();
             authorize.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
             authorize.anyRequest().authenticated();
         }).httpBasic((Customizer.withDefaults()));

@@ -26,19 +26,25 @@ public class AuthController extends BaseController {
     // Build Register REST API
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterDto registerDto) {
-        String response = authService.register(registerDto);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        try {
+            String response = authService.register(registerDto);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     // Build Login REST API
 
     @PostMapping("/login")
     public ResponseEntity<JwtAuthResponse> login(@RequestBody LoginDto loginDto) {
-        JwtAuthResponse jwtAuthResponse = authService.login(loginDto);
-//        logger.debug("Debug level - Hello Logback");
-        logger.info("Login Success.");
+        try {
+            JwtAuthResponse jwtAuthResponse = authService.login(loginDto);
+            return new ResponseEntity<>(jwtAuthResponse, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new JwtAuthResponse(), HttpStatus.BAD_REQUEST);
+        }
 
-        return new ResponseEntity<>(jwtAuthResponse, HttpStatus.OK);
     }
     @PostMapping("/loginBySNS")
     public ResponseEntity<JwtAuthResponse> loginBySNS(@RequestBody LoginDto loginDto) {
