@@ -11,7 +11,8 @@ import loananhshop.api.service.SubContentService;
 import loananhshop.api.service.file.FilesStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Controller;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.BindingResult;
@@ -22,9 +23,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.ArrayList;
 import java.util.List;
 
-@Controller
-@RequestMapping("/admin/article" )
-@SessionAttributes("article" )
+@RestController
+@RequestMapping("/api/admin/article" )
+@CrossOrigin("*")
 public class ArticleManageController extends AdminBaseController {
 
     @Autowired
@@ -53,18 +54,11 @@ public class ArticleManageController extends AdminBaseController {
      * List
      **/
 
-    @GetMapping("/index" )
-    public String index(Model model) {
-
-
-        int nonPublicArticleNum = articleService.countNonPublic();
-        model.addAttribute("nonPublicArticleNum", nonPublicArticleNum);
-        int publicArticleNum = articleService.countPublic();
-        model.addAttribute("publicArticleNum", publicArticleNum);
+    @GetMapping("/list" )
+    public ResponseEntity<List<Article>> index(Model model) {
         List<Article> articleList = articleService.findAll();
-        model.addAttribute("articleList", articleList);
 
-        return "admin/articleManage/index";
+        return new ResponseEntity<>(articleList, HttpStatus.OK);
     }
 
     /**
@@ -107,19 +101,6 @@ public class ArticleManageController extends AdminBaseController {
         return newArticle(article, model);
     }
 
-
-    @PostMapping(params = "cancel" )
-    public String cancelInitArticle(@ModelAttribute("article" ) Article article, Model model, SessionStatus status) {
-        List<SubContent> subContentList = article.getSubContentList();
-        if (!ObjectUtils.isEmpty(subContentList)) {
-            for (SubContent subContent : subContentList) {
-                // delete image by file name
-                deleteSubContentImageFile(subContent);
-            }
-        }
-        status.setComplete();
-        return index(model);
-    }
 
     @PostMapping("/removeNewImage/{subContentIndex}" )
     public String removeNewImage(@ModelAttribute("article" ) Article article, @PathVariable("subContentIndex" ) int subContentIndex, Model model) {
@@ -378,25 +359,6 @@ public class ArticleManageController extends AdminBaseController {
 
         return editArticle(article.getId(), model);
 
-    }
-
-
-    @PostMapping(params = "update" )
-    public String updateArticle(@ModelAttribute("article" ) Article article, BindingResult result, SessionStatus sessionStatus, Model model) {
-
-        if (result.hasErrors()) {
-            return editArticle(article.getId(), model);
-        }
-
-        articleService.save(article);
-        sessionStatus.setComplete();
-        return showArticle(article.getId(), model);
-    }
-
-    @PostMapping(params = "cancelEdit" )
-    public String cancelUpdateArticle(@ModelAttribute("article" ) Article article, BindingResult result, SessionStatus sessionStatus, Model model) {
-        sessionStatus.setComplete();
-        return showArticle(article.getId(), model);
     }
 
     /**

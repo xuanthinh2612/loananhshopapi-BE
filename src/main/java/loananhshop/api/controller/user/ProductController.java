@@ -27,7 +27,7 @@ public class ProductController extends UserBaseController {
     @GetMapping("/list")
     public ResponseEntity<List<Product>> getListProduct() {
         try {
-            List<Product> productList = productService.findList();
+            List<Product> productList = productService.findAvailableList();
             if (ObjectUtils.isEmpty(productList)) {
                 throw new Exception("Không tìm thấy sản phẩm nào!");
             }

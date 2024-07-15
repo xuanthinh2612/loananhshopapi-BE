@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Date;
+import java.util.Set;
 
 @Entity
 @Table
@@ -21,7 +22,7 @@ public class UserOrder {
     private Long id;
 
     @Column
-    private Long quantity;
+    private Long totalAmount;
 
     @Column
     private int status = 1;
@@ -53,8 +54,13 @@ public class UserOrder {
     @Column
     private Date updatedAt;
 
-    @ManyToOne
-    private Product product;
+    @OneToMany(cascade = CascadeType.ALL)
+//    @JoinTable(
+//            name = "user_order_product_list",
+//            joinColumns = @JoinColumn(name = "order_id"),
+//            inverseJoinColumns = @JoinColumn(name = "product_id")
+//    )
+    private Set<ProductOrder> productOrderList;
 
     @ManyToOne
     private User user;

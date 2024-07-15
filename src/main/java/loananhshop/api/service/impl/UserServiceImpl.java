@@ -72,6 +72,11 @@ public class UserServiceImpl implements UserService {
         return mapToUserDto(user);
     }
 
+    @Override
+    public User findByUsernameOrEmail(String usernameOrEmail) {
+        return userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail).orElse(null);
+    }
+
     private UserDto mapToUserDto(User user) {
         UserDto userDto = new UserDto();
         userDto.setName(user.getName());

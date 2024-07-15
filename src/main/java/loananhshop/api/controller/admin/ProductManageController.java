@@ -1,28 +1,25 @@
 package loananhshop.api.controller.admin;
 
+import jakarta.validation.Valid;
 import loananhshop.api.common.CommonConst;
 import loananhshop.api.controller.helper.Helper;
-import loananhshop.api.model.*;
+import loananhshop.api.model.Image;
+import loananhshop.api.model.Product;
+import loananhshop.api.model.SubContent;
 import loananhshop.api.repository.ImageRepository;
 import loananhshop.api.service.CategoryService;
 import loananhshop.api.service.ImageService;
 import loananhshop.api.service.ProductService;
 import loananhshop.api.service.SubContentService;
 import loananhshop.api.service.file.FilesStorageService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.support.SessionStatus;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -70,34 +67,97 @@ public class ProductManageController extends AdminBaseController {
     @GetMapping("/list" )
     public ResponseEntity<List<Product>> findAllListProduct() {
         List<Product> productList = productService.findList();
-//        model.addAttribute("productList", productList);
-//        int userViewAbleProNum = productService.countAvailable();
-//        model.addAttribute("userViewAbleProNum", userViewAbleProNum);
-//        int disabledNum = productService.countByStatus(CommonConst.ProductStatus.banded.code());
-//        model.addAttribute("disabledNum", disabledNum);
-//        int pendingNum = productService.countByStatus(CommonConst.ProductStatus.pending.code());
-//        model.addAttribute("pendingNum", pendingNum);
-//        int soldOutNum = productService.countByStatus(CommonConst.ProductStatus.soldOut.code());
-//        model.addAttribute("soldOutNum", soldOutNum);
-//        int saleProNum = productService.countByStatus(CommonConst.ProductStatus.sale.code());
-//        model.addAttribute("saleProNum", saleProNum);
-//        int normalProNum = productService.countByStatus(CommonConst.ProductStatus.available.code());
-//        model.addAttribute("normalProNum", normalProNum);
         return new ResponseEntity<>(productList, HttpStatus.OK);
     }
 
     /**
-     * New
+     * create
      **/
+    @PostMapping("/create" )
+    public String createProduct(@Valid  @RequestBody Product product, BindingResult result) {
+        // check valid model
+        if (result.hasErrors()) {
+            return "error";
+        }
+        try {
+            productService.save(product);
+            return "success";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
 
-//    @GetMapping("/new" )
-//    public String newProduct(@ModelAttribute("product" ) Product product, Model model) {
-//        if (ObjectUtils.isEmpty(product) || !ObjectUtils.isEmpty(product.getId())) {
-//            product = new Product();
-//            model.addAttribute("product", product);
-//        }
-//        return "admin/product/new";
-//    }
+
+    @PutMapping("/update" )
+    public String editProduct(@Valid  @RequestBody Product product, BindingResult result) {
+        if (result.hasErrors()) {
+            return "error";
+        }
+        productService.save(product);
+        return "success";
+    }
+
+
+    @DeleteMapping("/delete/{id}" )
+    public String deleteProduct(@PathVariable("id" ) Long id) {
+        Product product = productService.findById(id);
+        if (product == null) {
+            return "error";
+        }
+        List<SubContent> subContentList = product.getSubContentList();
+        for (SubContent subContent : subContentList) {
+            // delete image file
+            deleteSubContentImageFile(subContent);
+        }
+        productService.deleteById(id);
+        return "success";
+    }
+
+    @PutMapping("/public/{id}" )
+    public String publicProduct(@PathVariable("id" ) Long id) {
+        Product product = productService.findById(id);
+        if (product == null) {
+            return "error";
+        }
+        product.setStatus(CommonConst.ProductStatus.available.code());
+        productService.save(product);
+        return "success";
+    }
+
+    @PutMapping("/onSale/{id}" )
+    public String onSaleProduct(@PathVariable("id" ) Long id) {
+        Product product = productService.findById(id);
+        if (product == null) {
+            return "error";
+        }
+        product.setStatus(CommonConst.ProductStatus.sale.code());
+        productService.save(product);
+        return "success";
+    }
+
+    @PutMapping("/offProduct/{id}" )
+    public String offProduct(@PathVariable("id" ) Long id) {
+        Product product = productService.findById(id);
+        if (product == null) {
+            return "error";
+        }
+        product.setStatus(CommonConst.ProductStatus.banded.code());
+        productService.save(product);
+        return "success";
+    }
+
+    @PutMapping("/setSoldOut/{id}" )
+    public String setSoldOut(@PathVariable("id" ) Long id) {
+        Product product = productService.findById(id);
+        if (product == null) {
+            return "error";
+        }
+        product.setStatus(CommonConst.ProductStatus.soldOut.code());
+        productService.save(product);
+        return "success";
+    }
+
 //
 //    @PostMapping("/initImage" )
 //    public String initImage(@ModelAttribute("product" ) Product product, @RequestParam("imageFiles" ) MultipartFile[] imageFiles, Model model) {
@@ -188,21 +248,6 @@ public class ProductManageController extends AdminBaseController {
 //        return newProduct(product, model);
 //    }
 //
-//    @PostMapping("/create" )
-//    public String createProduct(@Valid @ModelAttribute("product" ) Product product, BindingResult result, Model model, SessionStatus status) {
-//        // check valid model
-//        if (result.hasErrors()) {
-//            return "admin/product/new";
-//        }
-//        try {
-//            productService.save(product);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        status.setComplete();
-//        return "redirect:/admin/product/index";
-//    }
-//
 //    /**
 //     * Edit
 //     **/
@@ -217,17 +262,7 @@ public class ProductManageController extends AdminBaseController {
 //        return "admin/product/edit";
 //    }
 //
-//    @PostMapping("/update" )
-//    public String editProduct(@ModelAttribute("product" ) Product product, BindingResult result, SessionStatus sessionStatus, Model model) {
-//        if (result.hasErrors()) {
-//            return "admin/product/edit";
-//        }
-//        productService.save(product);
-//        sessionStatus.setComplete();
-//        model.addAttribute("product", product);
-//        return showDetail(product.getId(), model);
-//    }
-//
+
 //    @PostMapping("/addImage" )
 //    public String addImage(@ModelAttribute("product" ) Product product, @RequestParam("imageFile" ) MultipartFile imageFile, Model model) {
 //
@@ -362,65 +397,6 @@ public class ProductManageController extends AdminBaseController {
 //        }
 //        model.addAttribute("product", product);
 //        return "admin/product/show";
-//    }
-//
-//    @PostMapping("/delete/{id}" )
-//    public String deleteProduct(@PathVariable("id" ) Long id, Model model) {
-//        Product product = productService.findById(id);
-//        if (product == null) {
-//            return index(model);
-//        }
-//        List<SubContent> subContentList = product.getSubContentList();
-//        for (SubContent subContent : subContentList) {
-//            // delete image file
-//            deleteSubContentImageFile(subContent);
-//        }
-//        productService.deleteById(id);
-//        return "redirect:/admin/product/index";
-//    }
-//
-//    @PostMapping("/public/{id}" )
-//    public String publicProduct(@PathVariable("id" ) Long id, Model model) {
-//        Product product = productService.findById(id);
-//        if (product == null) {
-//            return "redirect:/admin/product/index";
-//        }
-//        product.setStatus(CommonConst.ProductStatus.available.code());
-//        productService.save(product);
-//        return "redirect:/admin/product/index";
-//    }
-//
-//    @PostMapping("/onSale/{id}" )
-//    public String onSaleProduct(@PathVariable("id" ) Long id, Model model) {
-//        Product product = productService.findById(id);
-//        if (product == null) {
-//            return "redirect:/admin/product/index";
-//        }
-//        product.setStatus(CommonConst.ProductStatus.sale.code());
-//        productService.save(product);
-//        return "redirect:/admin/product/index";
-//    }
-//
-//    @PostMapping("/offProduct/{id}" )
-//    public String offProduct(@PathVariable("id" ) Long id, Model mode) {
-//        Product product = productService.findById(id);
-//        if (product == null) {
-//            return "redirect:/admin/product/index";
-//        }
-//        product.setStatus(CommonConst.ProductStatus.banded.code());
-//        productService.save(product);
-//        return "redirect:/admin/product/index";
-//    }
-//
-//    @PostMapping("/setSoldOut/{id}" )
-//    public String setSoldOut(@PathVariable("id" ) Long id, Model mode) {
-//        Product product = productService.findById(id);
-//        if (product == null) {
-//            return "redirect:/admin/product/index";
-//        }
-//        product.setStatus(CommonConst.ProductStatus.soldOut.code());
-//        productService.save(product);
-//        return "redirect:/admin/product/index";
 //    }
 
     /**
