@@ -17,14 +17,13 @@ import org.springframework.ui.Model;
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/article" )
+@RequestMapping("/api/admin/blogs")
 @CrossOrigin("*")
 public class ArticleManageController extends AdminBaseController {
 
@@ -45,247 +44,84 @@ public class ArticleManageController extends AdminBaseController {
     @Autowired
     private Helper helper;
 
-    @ModelAttribute("article" )
-    private Article initEntity(Model model) {
-        return new Article();
-    }
-
     /**
      * List
      **/
 
-    @GetMapping("/list" )
+    @GetMapping("")
     public ResponseEntity<List<Article>> index(Model model) {
         List<Article> articleList = articleService.findAll();
 
         return new ResponseEntity<>(articleList, HttpStatus.OK);
     }
 
-    /**
-     * New
-     **/
-
-    @GetMapping("/new" )
-    public String newArticle(@ModelAttribute("article" ) Article article, Model model) {
-        if (ObjectUtils.isEmpty(article) || !ObjectUtils.isEmpty(article.getId())) {
-            article = new Article();
-            model.addAttribute("article", article);
-        }
-        return "admin/articleManage/new";
-    }
-
-    @PostMapping("/initImage" )
-    public String initImage(@ModelAttribute("article" ) Article article, @RequestParam("imageFiles" ) MultipartFile[] imageFiles, Model model) {
-        List<SubContent> subContentList = article.getSubContentList();
-        if (ObjectUtils.isEmpty(subContentList)) {
-            subContentList = new ArrayList<>();
-        }
-
-        // save image file
-        for (MultipartFile imageFile : imageFiles) {
-
-            SubContent subContent = new SubContent();
-            String fileName = helper.genRandomFileName(imageFile.getOriginalFilename());
-            Image image = new Image();
-            try {
-                storageService.save(imageFile, fileName);
-                image.setImageName(fileName);
-                image.setImageUrl("/" + environment.getProperty("upload.path" ) + "/" + fileName);
-                subContent.setImage(image);
-                subContentList.add(subContent);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        article.setSubContentList(subContentList);
-        return newArticle(article, model);
-    }
-
-
-    @PostMapping("/removeNewImage/{subContentIndex}" )
-    public String removeNewImage(@ModelAttribute("article" ) Article article, @PathVariable("subContentIndex" ) int subContentIndex, Model model) {
-        try {
-            SubContent subContent = article.getSubContentList().get(subContentIndex);
-            // delete image file
-            deleteSubContentImageFile(subContent);
-            subContent.setImage(null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return newArticle(article, model);
-    }
-
-    @PostMapping("/removeSubContent/{subContentIndex}" )
-    public String removeSubContent(@ModelAttribute("article" ) Article article, @PathVariable("subContentIndex" ) int subContentIndex, Model model) {
-        try {
-            SubContent subContent = article.getSubContentList().get(subContentIndex);
-            // delete image file
-            deleteSubContentImageFile(subContent);
-            article.getSubContentList().remove(subContent);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return newArticle(article, model);
-    }
-
-    @PostMapping("/changeImage/{subContentIndex}" )
-    public String changeImage(@ModelAttribute("article" ) Article article, @RequestParam("imageFile" ) MultipartFile imageFile, @PathVariable("subContentIndex" ) int subContentIndex, Model model) {
-        try {
-            SubContent subContent = article.getSubContentList().get(subContentIndex);
-            Image image = subContent.getImage();
-            if (ObjectUtils.isEmpty(image)) {
-                image = new Image();
-                subContent.setImage(image);
-            }
-
-            String fileName = helper.genRandomFileName(imageFile.getOriginalFilename());
-            storageService.save(imageFile, fileName);
-            image.setImageName(fileName);
-            image.setImageUrl("/" + environment.getProperty("upload.path" ) + "/" + fileName);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return newArticle(article, model);
-    }
-
-    @PostMapping(params = "create" )
-    public String createArticle(@ModelAttribute("article" ) Article article, BindingResult result, Model model, SessionStatus status) {
-
+    @PostMapping("/save")
+    public String createArticle(@RequestBody Article article, BindingResult result) {
         if (result.hasErrors()) {
-            return "/admin/articleManage/new";
+            return "error";
         }
         articleService.save(article);
-        status.setComplete();
-        return showArticle(article.getId(), model);
+        return "success";
     }
 
     /**
-     * Detail
+     * Get Article By ID
      **/
 
-    @GetMapping("/show/{id}" )
-    public String showArticle(@PathVariable("id" ) Long id, Model model) {
+    @GetMapping("/{id}")
+    public ResponseEntity<Article> getArticleById(@PathVariable("id") Long id) {
         Article article = articleService.findById(id);
-        model.addAttribute("article", article);
-        return "/admin/articleManage/show";
+        return new ResponseEntity<>(article, HttpStatus.OK);
     }
 
-    @PostMapping("/disable/{id}" )
-    public String disableArticle(@PathVariable("id" ) Long id, Model model) {
+    @PostMapping("/disable/{id}")
+    public String disableArticle(@PathVariable("id") Long id, Model model) {
         Article article = articleService.findById(id);
         article.setStatus(CommonConst.FLAG_OFF);
         articleService.save(article);
-        return showArticle(article.getId(), model);
+        return "success";
     }
 
-    @PostMapping("/enable/{id}" )
-    public String enableArticle(@PathVariable("id" ) Long id, Model model) {
+    @PostMapping("/enable/{id}")
+    public String enableArticle(@PathVariable("id") Long id, Model model) {
         Article article = articleService.findById(id);
         article.setStatus(CommonConst.FLAG_ON);
         articleService.save(article);
-        return showArticle(article.getId(), model);
+        return "success";
     }
 
-    @PostMapping("/setOnTop/{id}" )
-    public String setOnTop(@PathVariable("id" ) Long id, Model model) {
+    @PostMapping("/setOnTop/{id}")
+    public String setOnTop(@PathVariable("id") Long id, Model model) {
         Article article = articleService.findById(id);
         if (article.getOnTop() == CommonConst.FLAG_ON) {
-            return showArticle(article.getId(), model);
+            return "success";
         }
         article.setOnTop(CommonConst.FLAG_ON);
         articleService.save(article);
-        return showArticle(article.getId(), model);
+        return "success";
     }
 
-    @PostMapping("/setOffTop/{id}" )
-    public String setOffTop(@PathVariable("id" ) Long id, Model model) {
+    @PostMapping("/setOffTop/{id}")
+    public String setOffTop(@PathVariable("id") Long id, Model model) {
         Article article = articleService.findById(id);
         article.setOnTop(CommonConst.FLAG_OFF);
         articleService.save(article);
-        return showArticle(article.getId(), model);
+        return "success";
     }
 
-    @PostMapping("/delete/{id}" )
-    public String deleteArticle(@PathVariable("id" ) Long id, Model model) {
-
-        Article article = articleService.findById(id);
-        List<SubContent> subContentList = article.getSubContentList();
-        for (SubContent subContent : subContentList) {
-            // delete image file
-            deleteSubContentImageFile(subContent);
-        }
-        articleService.deleteById(id);
-        return "redirect:/admin/article/index";
-    }
-
-    /**
-     * Edit
-     **/
-
-    @GetMapping("/edit/{id}" )
-    public String editArticle(@PathVariable("id" ) Long id, Model model) {
-        Article article = articleService.findById(id);
-        model.addAttribute("article", article);
-        return "admin/articleManage/edit";
-    }
-
-    @PostMapping("/addImageAndSubContent" )
-    public String addImageAndSubContent(@ModelAttribute("article" ) Article article, @RequestParam("imageFiles" ) MultipartFile[] imageFiles, Model model) {
-
-
-        List<SubContent> subContentList = article.getSubContentList();
-        if (ObjectUtils.isEmpty(subContentList)) {
-            subContentList = new ArrayList<>();
-        }
-
-        // save image file
-        for (MultipartFile imageFile : imageFiles) {
-
-            SubContent subContent = new SubContent();
-            String fileName = helper.genRandomFileName(imageFile.getOriginalFilename());
-            Image image = new Image();
-            try {
-                storageService.save(imageFile, fileName);
-                image.setImageName(fileName);
-                image.setImageUrl("/" + environment.getProperty("upload.path" ) + "/" + fileName);
-                subContent.setImage(image);
-                subContentList.add(subContent);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        article.setSubContentList(subContentList);
-        articleService.save(article);
-        return editArticle(article.getId(), model);
-    }
-
-    @PostMapping("/deleteImage/{subContentIndex}" )
-    public String deleteImage(@ModelAttribute("article" ) Article article, @PathVariable("subContentIndex" ) int subContentIndex, Model model) {
+    @DeleteMapping("/delete/{id}")
+    public String deleteArticle(@PathVariable("id") Long id) {
         try {
-            assert article.getSubContentList() != null;
-            SubContent subContent = article.getSubContentList().get(subContentIndex);
-            // delete image file
-            deleteSubContentImageFile(subContent);
-
-            Image image = subContent.getImage();
-            subContent.setImage(null);
-            subContentService.save(subContent);
-
-            assert image != null;
-            if (!ObjectUtils.isEmpty(image.getId())) {
-                imageService.deleteById(image.getId());
-            }
+            articleService.deleteById(id);
+            return "success";
         } catch (Exception e) {
-            e.printStackTrace();
+            return "error";
         }
-
-        return editArticle(article.getId(), model);
-
     }
+    
 
-    @PostMapping("/addImage/{subContentIndex}" )
-    public String addImage(@ModelAttribute("article" ) Article article, @PathVariable("subContentIndex" ) int subContentIndex, @RequestParam("imageFile" ) MultipartFile imageFile, Model model) {
+    @PostMapping("/addImage/{subContentIndex}")
+    public String addImage(@ModelAttribute("article") Article article, @PathVariable("subContentIndex") int subContentIndex, @RequestParam("imageFile") MultipartFile imageFile, Model model) {
 
         assert article.getSubContentList() != null;
         SubContent subContent = article.getSubContentList().get(subContentIndex);
@@ -296,20 +132,20 @@ public class ArticleManageController extends AdminBaseController {
         try {
             storageService.save(imageFile, fileName);
             image.setImageName(fileName);
-            image.setImageUrl("/" + environment.getProperty("upload.path" ) + "/" + fileName);
+            image.setImageUrl("/" + environment.getProperty("upload.path") + "/" + fileName);
             subContent.setImage(image);
             articleService.save(article);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return editArticle(article.getId(), model);
+        return "success";
 
     }
 
 
-    @PostMapping("/deleteSubContent/{subContentIndex}" )
-    public String deleteSubContent(@ModelAttribute("article" ) Article article, @PathVariable("subContentIndex" ) int subContentIndex, Model model) {
+    @PostMapping("/deleteSubContent/{subContentIndex}")
+    public String deleteSubContent(@ModelAttribute("article") Article article, @PathVariable("subContentIndex") int subContentIndex, Model model) {
         try {
             assert article.getSubContentList() != null;
             SubContent subContent = article.getSubContentList().get(subContentIndex);
@@ -323,12 +159,12 @@ public class ArticleManageController extends AdminBaseController {
             e.printStackTrace();
         }
 
-        return editArticle(article.getId(), model);
+        return "success";
 
     }
 
-    @PostMapping("/setImageAsAvatar/{subContentIndex}" )
-    public String setImageAsAvatar(@ModelAttribute("article" ) Article article, @PathVariable("subContentIndex" ) int subContentIndex, Model model) {
+    @PostMapping("/setImageAsAvatar/{subContentIndex}")
+    public String setImageAsAvatar(@ModelAttribute("article") Article article, @PathVariable("subContentIndex") int subContentIndex, Model model) {
         try {
             assert article.getSubContentList() != null;
             SubContent subContent = article.getSubContentList().get(subContentIndex);
@@ -340,12 +176,12 @@ public class ArticleManageController extends AdminBaseController {
             e.printStackTrace();
         }
 
-        return editArticle(article.getId(), model);
+        return "success";
 
     }
 
-    @PostMapping("/removeImageFromAvatar/{subContentIndex}" )
-    public String removeImageFromAvatar(@ModelAttribute("article" ) Article article, @PathVariable("subContentIndex" ) int subContentIndex, Model model) {
+    @PostMapping("/removeImageFromAvatar/{subContentIndex}")
+    public String removeImageFromAvatar(@ModelAttribute("article") Article article, @PathVariable("subContentIndex") int subContentIndex, Model model) {
         try {
             assert article.getSubContentList() != null;
             SubContent subContent = article.getSubContentList().get(subContentIndex);
@@ -357,7 +193,7 @@ public class ArticleManageController extends AdminBaseController {
             e.printStackTrace();
         }
 
-        return editArticle(article.getId(), model);
+        return "success";
 
     }
 
